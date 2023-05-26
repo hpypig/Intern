@@ -1,0 +1,6 @@
+ZREMRANGEBYRANK key start stop  # 移除;   0 为首元素    -1——倒数第一  -2——倒数第二
+ZREMRANGEBYRANK testkey 5 -1
+
+ZRANGE key start stop [WITHSCORES] # 显示 member；可返回分数，member score 交替显示
+zrange testkey 0 -1 # 显示所有
+

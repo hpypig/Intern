@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+</head>
+<!--
+    ref:
+        jquery-get: https://api.jquery.com/jquery.get/
+
+ -->
+<body>
+    <!-- <button type="button" onclik="ttest()">刷新列表2</button> 用这个就死活接收不到事件-->
+    <script type="text/javascript">
+        // 参考：https://www.delftstack.com/zh/howto/javascript/javascript-convert-timestamp-to-date/
+        function getTime(timestamp) {
+            var date = new Date(timestamp*1000); // js 是毫秒，unix是秒
+            var str = date.getFullYear()+
+                "/"+(date.getMonth()+1)+
+                "/"+date.getDate()+
+                " "+date.getHours()+
+                ":"+date.getMinutes()+
+                ":"+date.getSeconds();
+            return str
+        }
+        // var stock = document.getElementById("gg");
+        // stock.onclick = function() {
+        //     alert("123")
+        //     document.getElementById("stocks").style.display=""; // none
+        // }
+        function showNewsType() {
+            document.getElementById("columnForm").style.display="none";
+            $('#Titles').empty();
+            $('#contentPanel').empty();
+            document.getElementById("stocks").style.display=""; // none
+        }
+        function showColumnForm() {
+            document.getElementById("stocks").style.display="none";
+            //$('#columnForm').empty(); // 自己
+            $('#Titles').empty();  // 列表
+            $('#contentPanel').empty(); // 内容
+            document.getElementById("columnForm").style.display=""; // none
+        }
+        function showImportantNewsTitle() {
+            /*
+            $.ajax({
+                //type:"GET",
+                url:"http://localhost:8080/ImportantNews",
+                dataType: 'json', // 设置返回值类型
+                //contentType: 'application/json', // 设置参数类型
+                //headers: {'Content-Type':'application/json' },// 设置请求头
+                //xhrFields: { withCredentials: true }, // 跨域携带cookie
+                //data: JSON.stringify({name: "shuliqi"}), // 传递参数
+                error:function(xhr,status){  // 错误处理
+                    console.log("数据请求失败:", xhr,status);
+                },
+                success: function (data) {  // 获取结果
+                    console.log("数据请求成功", data);
+                }
+            })
+            */
+            // var importantNewsInfo
+            document.getElementById("columnForm").style.display="none";
+            document.getElementById("stocks").style.display="none";
+            $('#Titles').empty();
+            $.get("http://localhost:8080/ImportantNews",
+                function(data){
+                    // alert("title")
+                    // console.log(data)
+                    // console.log(data.data[0].title)
+                    var info = data.data
+                    var html = '';
+                    for(var i=0,infoLen=info.length; i<infoLen; i++) {
+                        timeStr = getTime(info[i].publishTime)
+                        html+= '<li id="' + info[i].id + '"onclick=getContent(id)>' + info[i].title + '——' + info[i].media +'——' + timeStr + '</li>';
+                    }
+                    // console.log(html)
+                    $('#Titles').append(html);
+
+                },'json');
+
+        }
+
+        function showImportantNewsTitle2() {
+            document.getElementById("columnForm").style.display="none";
+            document.getElementById("stocks").style.display="none";
+            $('#Titles').empty();
+            let socket = new WebSocket("ws://localhost:8080/ImportantNews");
+
+            socket.onopen = function(e) {
+                alert("[open] Connection established");
+                //alert("Sending to server");
+                //socket.send("My name is John");
+            };
+
+            // socket.onmessage = function(event) {
+            //     alert(`[message] Data received from server: ${event.data}`);
+            // };
+
+
+
+            socket.onmessage = function(event) {
+                // var mess = event.data;
+
+                mess = JSON.parse(event.data);
+                // alert(mess.data.length);
+
+                if (mess.op != null) {
+                    data = mess.data;
+                    if (mess.op == "i") {
+                        var s=document.getElementById('Titles');
+                        var tLen=s.childNodes.length;
+                        // 删除最后一个
+                        if (tLen == 30) {
+                            s.removeChild(s.childNodes[29]);
+                        }
+                        // 插入头部
+                        txt = data.title +'——' + data.media
+                        var li= document.createElement("li");
+                        li.innerHTML=txt;
+                        li.id=data.id;
+                        li.onclick = getContent(li.id)
+                        s.insertBefore(li,s.childNodes[0])
+
+
+                    } else { // u  只要求增加，没要求更新
+                        // var s=document.getElementById('Titles');
+                        // var tLen=s.childNodes.length;
+                        // for (var i=tLen-1; i>0; i--) {
+                        //     if (i==n-1) {
+                        //         s.removeChild(s.childNodes[i]);
+                        //     }
+                        // }
+                    }
+                } else {
+                    console.log(mess.data)
+                    var info = mess.data;
+                    var html = '';
+                    for(var i=0,infoLen=info.length; i<infoLen; i++) {
+                        timeStr = getTime(info[i].publishTime)
+                        html+= '<li id="' + info[i].id + '"onclick=getContent(id)>' + info[i].title +'——' + info[i].media +'——' + timeStr + '</li>';
+                    }
+                    // console.log(html)
+                    $('#Titles').append(html);
+                }
+
+            };
+
+
+            socket.onclose = function(event) {
+                if (event.wasClean) {
+                    alert(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+                } else {
+                    // 例如服务器进程被杀死或网络中断
+                    // 在这种情况下，event.code 通常为 1006
+                    alert('[close] Connection died');
+                }
+            };
+
+            socket.onerror = function(error) {
+                alert(`[error] ${error.message}`);
+            };
+        }
+
+        function showStockNewsTitle() {
+            // alert("123");
+            $('#Titles').empty();
+            a = $('#stockId').val();
+            b = $('#stockPage').val();
+            c = $('#stockPageSize').val();
+            d = $('#stockTxtType').val();
+            $.get("http://localhost:8080/list/article/stocks/batch", {ids:a, page:b, pageSize:c, txtType:d},
+                function(data){
+                    var info = data.data
+                    var html = '';
+                    for(var i=0, infoLen=info.length; i<infoLen; i++) {
+                        timeStr = getTime(info[i].publishTime)
+                        html+= '<li id="' + info[i].id + '"onclick=getContent(id)>' + info[i].title +'——' + info[i].media +'——' + timeStr + '</li>';
+                    }
+                    // console.log(html)
+                    $('#Titles').append(html);
+
+                },'json');
+        }
+
+        function showColumnTitle() {
+            $('#Titles').empty();
+            a = $('#columnId').val();
+            b = $('#columnPage').val();
+            c = $('#columnPageSize').val();
+
+            $.get("http://localhost:8080/list/article/column", { id: a, page: b, pageSize:c },
+            function(data){
+                var info = data.data
+                var html = '';
+                for(var i=0, infoLen=info.length; i<infoLen; i++) {
+                    timeStr = getTime(info[i].publishTime)
+                    html+= '<li id="' + info[i].id + '"onclick=getContent(id)>' + info[i].title +'——' + info[i].media +'——' + timeStr + '</li>';
+                }
+                // console.log(html)
+                $('#Titles').append(html);
+            });
+        }
+        function getContent(id) {
+            // alert(id)
+            $('#contentPanel').empty()
+
+            $.get("http://localhost:8080/read/article/"+id,
+                function(data){
+                    news = data.data;
+                    // console.log(news.content);
+
+                    $('#contentPanel').append('<h1>' + news.title +'</h1>');
+                    $('#contentPanel').append(news.content);
+            });
+
+        }
+        //---------------------------------------点击给表单赋值
+        function getStock(id) { // 获取左侧列表id
+            // alert(id)
+            $('#stockId').val(id);
+        }
+        // 点击 全部、新闻、公告、研报后的响应
+        function box3_1() {
+            $('#stockTxtType').val(0);
+        }
+        function box3_2() {
+            $('#stockTxtType').val(1);
+        }
+        function box3_3() {
+            $('#stockTxtType').val(2);
+        }
+        function box3_4() {
+            $('#stockTxtType').val(3)
+        }
+
+        function getColumn(id) {
+            // alert(id)
+            $('#columnId').val(id);
+        }
+    </script>
+    <!-- 股票列表 -->
+    <!-- 要闻     资讯：全部 新闻 公告 研报    栏目 -->
+    <div class="box1">
+        <div>股票</div>
+        <div>
+            <ol>
+                <li id="sz_000776" onclick="getStock(id)"> 广发证券 </li>
+                <li id="sh_601456" onclick="getStock(id)"> 国金证券 </li>
+                <li id="sh_600030" onclick="getStock(id)"> 中信证券 </li>
+            </ol>
+        </div>
+    </div>
+    <div class="box1">
+        <div>栏目</div>
+        <ol>
+            <li id="5cbd6668cc9d755ecdc6fb25" onclick="getColumn(id)"> 栏目1 </li>
+            <li id="5cbd6668cc9d755ecdc6fb20" onclick="getColumn(id)"> 栏目2 </li>
+            <li id="5cbd6668cc9d755ecdc6fb11" onclick="getColumn(id)"> 栏目3 </li>
+        </ol>
+    </div>
+
+
+    <div id="labels">
+        <div>
+            <div class="box2" onclick="showImportantNewsTitle()"> 要闻-http </div>
+            <div class="box2" onclick="showImportantNewsTitle2()"> 要闻-ws </div>
+            <div class="box3" id="gg" onclick="showNewsType()"> 个股 </div>
+            <div class="box4" onclick="showColumnForm()"> 栏目 </div>
+        </div>
+        <div id="stocks" style="display:none">
+            <!-- 点击个股，此栏才显现 -->
+            <div class="box3-1" onclick='box3_1()'>全部</div>
+            <div class="box3-2" onclick='box3_2()'>新闻</div>
+            <div class="box3-3" onclick='box3_3()'>公告</div>
+            <div class="box3-4" onclick='box3_4()'>研报</div>
+            <button type="button" onclick="showStockNewsTitle()">刷新列表</button>
+            <form action="http://localhost:8080" >
+                <input type="text" name="ids" placeholder="sz_00076" id="stockId">
+                <input type="text" name="page" placeholder="1" id="stockPage">
+                <input type="text" name="pageSize" placeholder="10" id="stockPageSize">
+                <input type="text" name="txtType" placeholder="0" id="stockTxtType">
+            </form>
+        </div>
+<!-- 栏目------------------------ -->
+        <div id="columnForm" style="display:none">
+            <form action="http://localhost:8080" >
+                <input type="text" name="id" placeholder="5cbd6668cc9d755ecdc6fb25" id="columnId">
+                <input type="text" name="page" placeholder="1" id="columnPage">
+                <input type="text" name="pageSize" placeholder="10" id="columnPageSize">
+                <button type="button" onclick="showColumnTitle()">刷新</button>
+            </form>
+
+        </div>
+
+        <div>
+            <ol id="Titles">
+            </ol>
+            <!-- 写 title 列表 -->
+        </div>
+
+    </div>
+    <div class="box5">
+        具体内容
+        </br>
+        <div id="contentPanel">
+
+        </div>
+    </div>
+
+</body>
+
+<style>
+    #labels{
+        background-color: orange;
+        width:450px;
+        float: left;
+    }
+    .box1{
+        background-color: goldenrod;
+        width:150px;
+        float: left;
+    }
+    .box2{
+        background-color: green;
+        width:110px;
+        float: left;
+    }
+    .box3{
+        background-color: goldenrod;
+        width:110px;
+        float: left;
+    }
+    .box4{
+        background-color: green;
+        width:110px;
+        float: left;
+    }
+    .box5{
+        background-color: goldenrod;
+        width:600px;
+        float: left;
+    }
+    .box3-1{
+        width:80px;
+        float: left;
+    }
+    .box3-2{
+        width:80px;
+        float: left;
+    }
+    .box3-3{
+        width:80px;
+        float: left;
+    }
+    .box3-4{
+        width:80px;
+        float: left;
+    }
+
+</style>
+</html>

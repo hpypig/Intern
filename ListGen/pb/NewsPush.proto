@@ -1,0 +1,40 @@
+// protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative pb/NewsPush.proto
+syntax = "proto3";
+option go_package = "ListGen/pb";
+package pb;
+service NewsPusher {
+    rpc ImportantNewsPush(ImportantNewsRequest) returns (stream UpdatedNewsResponse);
+}
+
+message ImportantNewsRequest {
+    string placeholder = 1;
+}
+
+message UpdatedNewsResponse {
+    string op = 1;
+    string id = 2;
+    ImportantNews data = 3;
+}
+message ImportantNews {
+    sint64  source = 1;
+    string id = 2;
+    string title = 3;
+    string subtitle = 4;
+    string media = 5;
+    string content = 6;
+    sint64 publishTime = 7;
+    repeated string columns = 8;
+    repeated Stock stocks = 9;
+    sint64 txtType = 10;
+}
+message Stock {
+    string market = 1;
+    string code = 2;
+    string name = 3;
+    StockTag tag = 4;
+}
+message StockTag {
+    double weight = 1;
+    string emotion = 2;
+    sint64 emotionWeight = 3;
+}

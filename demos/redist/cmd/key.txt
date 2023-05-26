@@ -1,0 +1,1 @@
+DEL key_name # 删除某个键

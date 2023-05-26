@@ -1,0 +1,54 @@
+package main
+
+import (
+    "flag"
+    "github.com/gorilla/websocket"
+    "log"
+    "net/http"
+)
+
+/*
+1） 正常 http 监听
+2） 检测到是 update，则调用升级函数：upgrader.Upgrade(w, r, nil)
+       提前生成 upgrader
+*/
+
+var addr = flag.String("addr", "localhost:8081", "http service address")
+var upgrader = websocket.Upgrader{} // use default options
+
+func main() {
+    flag.Parse()
+    log.SetFlags(0)
+    http.HandleFunc("/echo", echo)
+    log.Fatal(http.ListenAndServe(*addr, nil))
+    //http.HandleFunc("/importantNewsInfo", demo)
+}
+
+func echo(w http.ResponseWriter, r *http.Request) {
+    c, err := upgrader.Upgrade(w, r, nil)
+    if err != nil {
+        log.Print("upgrade:", err)
+        return
+    }
+    defer c.Close()
+    for {
+        mt, message, err := c.ReadMessage()
+        if err != nil {
+            log.Println("read:", err)
+            break
+        }
+        log.Printf("recv: %s", message)
+        err = c.WriteMessage(mt, message)
+        if err != nil {
+            log.Println("write:", err)
+            break
+        }
+    }
+}
+
+// 立即回一次
+
+// 之后阻塞等待 listGen 的信息信息
+func demo(w http.ResponseWriter, r *http.Request) {
+
+}
